@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field, HttpUrl
 from uuid import UUID
 from datetime import datetime, timedelta, time
 
+from typing_extensions import Literal
+
 app = FastAPI()
 
 
@@ -108,63 +110,121 @@ app = FastAPI()
 #     return result
 
 # Example of using nested model:
-
-class Img(BaseModel):
-    url: HttpUrl
-    imgName: str
+#
+# class Img(BaseModel):
+#     url: HttpUrl
+#     imgName: str
+#
+#
+# class Item(BaseModel):
+#     name: str = Field(..., example="foo")
+#     price: float = Field(..., example=151)
+#     tax: float | None = Field(None, example=3.54)
+#     image: list[Img] | None = Field(None, example=["http://image_example.com", "http://images_for_example.com"])
+#
+#
+# class Offer(BaseModel):
+#     name: str
+#     price: float
+#     item: list[Item]
+#
+#
+# @app.put('/offers')
+# async def create_offer(
+#         offer: Offer = Body(..., embed=True)
+# ):
+#     return offer
+#
+#
+# async def read_items(
+#         item_id: UUID,
+#         start_date: datetime | None = Body(None),
+#         end_date: datetime | None = Body(None),
+#         repeat_at: time | None = Body(None),
+#         process_after: timedelta | None = Body(None),
+# ):
+#     start_process = start_date + process_after
+#     duration = end_date - start_process
+#     return {
+#         "item_id": item_id,
+#         "start_date": start_date,
+#         "end_date": end_date,
+#         "repeat_at": repeat_at,
+#         "process_after": process_after,
+#         "start_process": start_process,
+#         "duration": duration,
+#     }
+#
+# @app.get("/items")
+# async def read_items(
+#     cookie_id: str | None = Cookie(None),
+#     accept_encoding: str | None = Header(None),
+#     sec_ch_ua: str | None = Header(None),
+#     user_agent: str | None = Header(None),
+#     x_token: list[str] | None = Header(None),
+# ):
+#     return {
+#         "cookie_id": cookie_id,
+#         "Accept-Encoding": accept_encoding,
+#         "sec-ch-ua": sec_ch_ua,
+#         "User-Agent": user_agent,
+#         "X-Token values": x_token,
+#     }
 
 
 class Item(BaseModel):
-    name: str = Field(..., example="foo")
-    price: float = Field(..., example=151)
-    tax: float | None = Field(None, example=3.54)
-    image: list[Img] | None = Field(None, example=["http://image_example.com", "http://images_for_example.com"])
-
-
-class Offer(BaseModel):
     name: str
+    description: str | None = None
     price: float
-    item: list[Item]
+    tax: float = 10.5
+    tags: list[str] = []
 
 
-@app.put('/offers')
-async def create_offer(
-        offer: Offer = Body(..., embed=True)
-):
-    return offer
+items = {
+    "foo": {"name": "Foo", "price": 50.2},
+    "bar": {"name": "Bar", "description": "The bartenders", "price": 62, "tax": 20.2},
+    "baz": {"name": "Baz", "description": None, "price": 50.2, "tax": 10.5, "tags": []},
+}
 
 
-async def read_items(
-        item_id: UUID,
-        start_date: datetime | None = Body(None),
-        end_date: datetime | None = Body(None),
-        repeat_at: time | None = Body(None),
-        process_after: timedelta | None = Body(None),
-):
-    start_process = start_date + process_after
-    duration = end_date - start_process
-    return {
-        "item_id": item_id,
-        "start_date": start_date,
-        "end_date": end_date,
-        "repeat_at": repeat_at,
-        "process_after": process_after,
-        "start_process": start_process,
-        "duration": duration,
-    }
+@app.get("/items/{item_id}", response_model=Item, response_model_exclude_unset=True)
+async def read_item(item_id: Literal["foo", "bar", "baz"]):
+    return items[item_id]
 
-@app.get("/items")
-async def read_items(
-    cookie_id: str | None = Cookie(None),
-    accept_encoding: str | None = Header(None),
-    sec_ch_ua: str | None = Header(None),
-    user_agent: str | None = Header(None),
-    x_token: list[str] | None = Header(None),
-):
-    return {
-        "cookie_id": cookie_id,
-        "Accept-Encoding": accept_encoding,
-        "sec-ch-ua": sec_ch_ua,
-        "User-Agent": user_agent,
-        "X-Token values": x_token,
-    }
+
+@app.post("/items/", response_model=Item)
+async def create_item(item: Item):
+    return item
+
+
+class UserBase(BaseModel):
+    username: str
+    email: str
+    full_name: str | None = None
+
+
+class UserIn(UserBase):
+    password: str
+
+
+class UserOut(UserBase):
+    pass
+
+
+@app.post("/user/", response_model=UserOut)
+async def create_user(user: UserIn):
+    return user
+
+
+@app.get(
+    "/items/{item_id}/name",
+    response_model=Item,
+    response_model_include={"name", "description"},
+)
+async def read_item_name(item_id: Literal["foo", "bar", "baz"]):
+    return items[item_id]
+
+
+@app.get("/items/{item_id}/public", response_model=Item, response_model_exclude={"tax"})
+async def read_items_public_data(item_id: Literal["foo", "bar", "baz"]):
+    return items[item_id]
