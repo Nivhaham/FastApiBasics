@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, Path, Body, Cookie, File, Form, Header
+from fastapi import FastAPI, Query, Path, Body, Cookie, File, Form, Header, status
 from enum import Enum
 from pydantic import BaseModel, Field, HttpUrl
 from uuid import UUID
@@ -211,7 +211,7 @@ class UserOut(UserBase):
     pass
 
 
-@app.post("/user/", response_model=UserOut)
+@app.post("/user/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserIn):
     return user
 
