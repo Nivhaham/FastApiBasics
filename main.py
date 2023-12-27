@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Path
 from enum import Enum
 from pydantic import BaseModel
 
@@ -76,13 +76,11 @@ async def create_item(item: Item):
     return item_model
 
 
-
-
 # an example of using Query() in order to enforce specific logic of the user's input
 
 @app.get('/items')
-async def read_items(q: str | None = Query(None, max_length=10,description="query string")):
-    #alias is a cool Query option used for giving another name to the query param.
+async def read_items(q: str | None = Query(None, max_length=10, description="query string")):
+    # alias is a cool Query option used for giving another name to the query param.
     # async def read_items(q: str = Query(..., min_length=2,max_length=10)):
     # the 3 dots allow us to enforce a query param + not give it a default value
     # async def read_items(q: list[str] | None = Query(None, max_length=10)):
@@ -91,3 +89,18 @@ async def read_items(q: str | None = Query(None, max_length=10,description="quer
     if q:
         return {"items": {"1": 'milk', "2": 'meat', 'q': q}}
     return {"items": {"1": 'milk', "2": 'meat'}}
+
+
+@app.get('/items_validation/{item_id}')
+async def read_item_validation(
+        # astrix at the beginning makes all the parameters to be key value pairs
+        *,
+        item_id: int = Path(..., title='item id'),
+        q: str | None = Query(None, alias="item-query"),
+        b: str
+
+):
+    result = {"item_id": item_id}
+    if q:
+        result.update({"q": q})
+    return result
