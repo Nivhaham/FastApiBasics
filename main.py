@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field, HttpUrl
 from uuid import UUID
 from datetime import datetime, timedelta, time
 from fastapi.responses import JSONResponse, PlainTextResponse
-from fastapi.exceptions import RequestValidationError
+from fastapi.exceptions import RequestValidationError, HTTPException
+from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from typing_extensions import Literal
 
@@ -257,7 +258,39 @@ app = FastAPI()
 
 ### errors Handling
 
-
 class myCustomeException(Exception):
     def __init__(self, name: str):
         self.name = name
+
+
+@app.exception_handler(myCustomeException)
+async def my_exception_handler(request: Request, exc: myCustomeException):
+    return JSONResponse(content={"message": "Ops my exception handler"}, status_code=418)
+
+
+@app.get('/get_item/{item_id}')
+def read_item(item_id: int):
+    if item_id == 10:
+        return HTTPException(status_code=status.HTTP_418_IM_A_TEAPOT, detail="don't like 10")
+    return {"item_id": item_id}
+
+
+# can extend functionality StarletteHTTPException or
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request, exc):
+    print(f"Omg! An HTTP error!: {repr(exc)}")
+    return await http_exception_handler(request, exc)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print(f"OMG! The client sent invalid data!: {exc}")
+    return await request_validation_exception_handler(request, exc)
+
+
+@app.get("/blah_items/{item_id}")
+async def read_items(item_id: int):
+    if item_id == 10:
+        raise HTTPException(status_code=418, detail="Nope! I don't like 10.")
+    return {"item_id": item_id}
