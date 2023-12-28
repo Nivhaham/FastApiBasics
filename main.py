@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Query, Path, Body, Cookie, File, Form, Header, status
+from fastapi import FastAPI, Query, Path, Body, Cookie, File, Form, Header, status, UploadFile, Request
 from enum import Enum
 from pydantic import BaseModel, Field, HttpUrl
 from uuid import UUID
 from datetime import datetime, timedelta, time
-
+from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from typing_extensions import Literal
 
 app = FastAPI()
@@ -231,15 +233,31 @@ app = FastAPI()
 
 
 # Now let's say that the user want to send form-urlencoded instead of json. to handle it need to use Form
-# The difference between the two methods is the format in which the data is sent to the server.
+# The difference between the two methods is the format in which the data is sent.
+#
+# @app.post('/login/')
+# async def login(username: str = Form(...), password: str = Form(...)):
+#     print(password)
+#     return {"username": username}
+#
+#
+# @app.post('/login-json/')
+# async def login(username: str = Body(...), password: str = Body(...)):
+#     print(password)
+#     return {"username": username}
+#
+#
+# # uploading file like this:
+#
+# @app.post("/uploadfile/")
+# async def create_upload_file(
+#         files: list[UploadFile] = File(..., description="A file read as UploadFile")
+# ):
+#     return {"filename": [file.filename for file in files]}
 
-@app.post('/login/')
-async def login(username: str = Form(...), password: str = Form(...)):
-    print(password)
-    return {"username": username}
+### errors Handling
 
 
-@app.post('/login-json/')
-async def login(username: str = Body(...), password: str = Body(...)):
-    print(password)
-    return {"username": username}
+class myCustomeException(Exception):
+    def __init__(self, name: str):
+        self.name = name
